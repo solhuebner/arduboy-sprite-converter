@@ -8,9 +8,12 @@
 	<meta property="og:url" content="https://teamarg.github.io/arduboy-sprite-converter/" />
 	<meta property="og:type" content="website" /> 
 	<link rel="stylesheet" type="text/css" href="css/textstyles.css" />
-	<script type="text/javascript" src="js/imageCode.js">
-	</script>
 	<link rel="stylesheet" type="text/css" href="css/pagestyle.css?3.568126e+9" />
+	<script type="text/javascript" src="js/imageCode.js"></script>
+	<script type="text/javascript" src="js/LZWEncoder.js"></script>
+	<script type="text/javascript" src="js/NeuQuant.js"></script>
+	<script type="text/javascript" src="js/GIFEncoder.js"></script>
+	<script type="text/javascript" src="js/b64.js"></script>
 	<style type="text/css">
 		div.container {min-height: 1070px;}.shape_16 {background: url('images/shape_16.png') no-repeat;}@media only screen and (-moz-min-device-pixel-ratio: 1.5), only screen and (-o-min-device-pixel-ratio: 3/2), only screen and (-webkit-min-device-pixel-ratio: 1.5), only screen and (min-devicepixel-ratio: 1.5), only screen and (min-resolution: 1.5dppx) {.shape_16 {background: url('images/shape_16@2x.png') no-repeat;background-size: 702px 162px;}}
 		canvas,
@@ -28,6 +31,10 @@
         	padding:0px;
         	background-color: #FEFEFC;
         	border: 1px solid #463C3C;
+        }
+        .txtHead{
+        	text-align: left;
+        	margin: 16px 0 0 0;
         }
 	</style>
 	<script language="JavaScript">
@@ -67,8 +74,8 @@
 		        droppedImage.src = event.target.result;
 
 		        var fileName = imageData.name.split('.')[0];
-		        // dims[0] = width, dims[1] = height
-		        var dims = fileName.split('_')[1].split('x');
+		        var origWidth = fileName.split('_')[1].split('x')[0];
+		        var origHeight = fileName.split('_')[1].split('x')[1];
 		        var imgNW = droppedImage.naturalWidth;
 		        var imgNH = droppedImage.naturalHeight;
 		        var zoom = 1;
@@ -82,15 +89,12 @@
 		        	case 24: zoom = 1;
 		        		break;
 		        }
-		        var tileW = dims[0]*zoom;
-		        var tileH = dims[1]*zoom;
 
 		        // Create canvas for tiles
 		        var droppedImageCanvas = document.createElement("canvas");
-		        var canvasWidth = tileW+2;
-		        var canvasHeight = tileH+2;
-		        droppedImageCanvas.width = canvasWidth;
-		        droppedImageCanvas.height = canvasHeight;
+		        droppedImageCanvas.width = origWidth*zoom;
+		        droppedImageCanvas.height = origHeight*zoom;
+		        droppedImageCanvas.style.display = "none";
 
 		        // Create invisible canvas for original image
 		        var invisImageCanvas = document.createElement("canvas");
@@ -99,24 +103,24 @@
 		        invisImageCanvas.style.display = "none";
 
 		        // Create code container
-		        var textareaS = document.createElement("p");
-		        textareaS.innerHTML = "Sprite";
-		        textareaS.style.textAlign = "left";
+		        var txtS = document.createElement("p");
+		        txtS.innerHTML = "Sprite";
+		        txtS.className = "txtHead";
 		        var droppedImageCode = document.createElement("textarea");
 		        droppedImageCode.className = "code";
-		        droppedImageCode.rows = "6";
-		        var textareaM = document.createElement("p");
-		        textareaM.innerHTML = "Mask";
-		        textareaM.style.textAlign = "left";
+		        droppedImageCode.rows = "7";
+		        var txtM = document.createElement("p");
+		        txtM.innerHTML = "Mask";
+		        txtM.className = "txtHead";
 		        var droppedMaskCode = document.createElement("textarea");
 		        droppedMaskCode.className = "code";
-		        droppedMaskCode.rows = "6";
-		        var textareaSM = document.createElement("p");
-		        textareaSM.innerHTML = "Sprite + Mask";
-		        textareaSM.style.textAlign = "left";
+		        droppedMaskCode.rows = "7";
+		        var txtSM = document.createElement("p");
+		        txtSM.innerHTML = "Sprite + Mask";
+		        txtSM.className = "txtHead";
 		        var droppedComboCode = document.createElement("textarea");
 		        droppedComboCode.className = "code";
-		        droppedComboCode.rows = "6";
+		        droppedComboCode.rows = "7";
 
 		        // Create div container
 		        var droppedImageDiv = document.createElement("div");
@@ -127,14 +131,13 @@
 		        var imageContainer = document.getElementById("image-container");
 		        imageContainer.innerHTML = "";
 		        imageContainer.appendChild(droppedImageDiv);
-		        //imageContainer.appendChild(document.createElement("br"));
-		        imageContainer.appendChild(textareaS);
+		        imageContainer.appendChild(txtS);
 		        imageContainer.appendChild(droppedImageCode);
 		        imageContainer.appendChild(document.createElement("br"));
-		        imageContainer.appendChild(textareaM);
+		        imageContainer.appendChild(txtM);
 		        imageContainer.appendChild(droppedMaskCode);
 		        imageContainer.appendChild(document.createElement("br"));
-		        imageContainer.appendChild(textareaSM);
+		        imageContainer.appendChild(txtSM);
 		        imageContainer.appendChild(droppedComboCode);
 
 		        // Create context for drawing
@@ -145,42 +148,44 @@
 		        // Draw the image on an invisible canvas to generate the code
 		        invisImageContext.drawImage(droppedImage, 0, 0);
 
-		        // Clip the image and draw individual tiles on the canvas with 2px spacing inbetween
-		        for(var i = 0, x = 0, y = 0, tile; i < /*imgNH/imgNW*/1; i++){
-		        	if(x+tileW+2 <= canvasWidth){
-		        		x += tileW+2;
-		        	}
-		        	else{
-		        		x = 0;
-		        		y += tileH+2 
-		        	}
-		        	if(i === 0){x = 0;}
-		        	droppedImageContext.drawImage(droppedImage, 0, i*dims[0], dims[0], dims[1], x, y, tileW, tileH);
-		        }
+		        // Initiate GIFEncoder
+		        var encoder = new GIFEncoder();
+		        encoder.setRepeat(0);
+		        encoder.setDelay(500);
+		        encoder.start();
+		        droppedImageContext.fillStyle = "#00FF00";
 
-		        // Draw raster between tiles on the canvas
-		        /*droppedImageContext.beginPath();
-		        for(var j = 1; j <= Math.floor(700/(tileW+2)); j++){
-		        	droppedImageContext.moveTo(j*tileW+1+(j-1)*2, 0);
-		        	droppedImageContext.lineTo(j*tileW+1+(j-1)*2, canvasHeight);
+		        // Clip the image, draw on invisble canvas with green background and create a frame from the canvas 
+		        for(var i = 0, x = 0, y = 0, tile; i < imgNH/imgNW; i++){
+		        	droppedImageContext.fillRect(0,0,droppedImageCanvas.width, droppedImageCanvas.height);
+		        	droppedImageContext.drawImage(droppedImage, 0, i*origWidth, origWidth, origHeight, 0, 0, origWidth*zoom, origHeight*zoom);
+		        	encoder.addFrame(droppedImageContext);
 		        }
-		        for(var k = 1; k <= Math.ceil(imgNH/imgNW/Math.floor(700/(tileW)+2)); k++){
-		        	droppedImageContext.moveTo(0, k*tileW+1+(k-1)*2);
-		        	droppedImageContext.lineTo(canvasWidth, k*tileW+1+(k-1)*2);
-		        }
-		        droppedImageContext.strokeStyle = '#00969C';
-		        droppedImageContext.lineWidth = 2;
-		        droppedImageContext.stroke();
-		        */
+		        // Finish the GIF creation and show it with the total number of frames
+		        encoder.finish();
+		        var binaryGIF = encoder.stream().getData();
+		        var dataURL = 'data:image/gif;base64,'+encode64(binaryGIF);
+		        var gifDiv = document.createElement('div');
+		        var gif = document.createElement('img');
+		        gif.style.verticalAlign = 'middle';
+		        gif.src = dataURL;
+		        gifDiv.appendChild(gif);
+		        var totalFrames = document.createElement('p');
+		        totalFrames.style.display = 'inline-block';
+		        totalFrames.style.margin = '0px 20px';
+		        totalFrames.innerHTML = "Total number of frames: "+imgNH/imgNW;
+		        gifDiv.appendChild(totalFrames);
+		        imageContainer.insertBefore(gifDiv, imageContainer.firstChild);
+
 		        // Generate the sprite string
 		        var spriteString = "const unsigned char PROGMEM "+fileName.split('_')[0]+"[] =\n"+
-		        				   "{\n// width, height,\n"+dims[0]+", "+dims[1]+",\n"+
+		        				   "{\n// width, height,\n"+origWidth+", "+origHeight+",\n"+
 		        				   "// FRAME 00\n";
 		        var maskString = "const unsigned char PROGMEM "+fileName.split('_')[0]+"_mask[] =\n"+
-		        				   "{\n// width, height,\n"+dims[0]+", "+dims[1]+",\n"+
+		        				   "{\n// width, height,\n"+origWidth+", "+origHeight+",\n"+
 		        				   "// FRAME 00\n";
 		        var comboString = "const unsigned char PROGMEM "+fileName.split('_')[0]+"_plus_mask[] =\n"+
-		        				   "{\n// width, height,\n"+dims[0]+", "+dims[1]+",\n"+
+		        				   "{\n// width, height,\n"+origWidth+", "+origHeight+",\n"+
 		        				   "// FRAME 00\n";
 		        var pageCount = Math.ceil(imgNH / 8);
 		        var columnCount = imgNW;
