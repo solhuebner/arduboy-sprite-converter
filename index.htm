@@ -158,7 +158,7 @@
 		        // Clip the image, draw on invisble canvas with green background and create a frame from the canvas 
 		        for(var i = 0; i < imgNH/origHeight; i++){
 		        	droppedImageContext.fillRect(0,0,droppedImageCanvas.width, droppedImageCanvas.height);
-		        	droppedImageContext.drawImage(droppedImage, 0, i*origWidth, origWidth, origHeight, 0, 0, origWidth*zoom, origHeight*zoom);
+		        	droppedImageContext.drawImage(droppedImage, 0, i*origHeight, origWidth, origHeight, 0, 0, origWidth*zoom, origHeight*zoom);
 		        	encoder.addFrame(droppedImageContext);
 		        }
 		        // Finish the GIF creation and show it with the total number of frames
@@ -190,12 +190,12 @@
 		        var pageCount = Math.ceil(imgNH / 8);
 		        var columnCount = imgNW;
 		        var currentByte = 0;
-		        var rowCounter = 0;
 		        var frameCounter = 0;
+		        var bytesPerFrame = origWidth*origHeight/8;
 		        
 		        // Read the sprite page-by-page
 		        for(var page = 0; page < pageCount; page++) {
-		        	currentByte = 0;
+		        	//currentByte = 0;
 		            // Read the page column-by-column
 		            for(var column = 0; column < columnCount; column++) {
 		            
@@ -230,13 +230,12 @@
 							spriteString += "\n";
 							maskString += "\n";
 							comboString += "\n";
-							rowCounter++;
 						}
 						if(currentByte%8 == 3){
 							comboString += "\n";
 						}
-						if(currentByte%imgNW === imgNW-1 && frameCounter < imgNH/origHeight -1){
-							if(currentByte%8 !== 7){
+						if(currentByte%bytesPerFrame === bytesPerFrame - 1 && frameCounter < imgNH/origHeight -1){
+							if(currentByte%8 !== 7 && currentByte%8 !== 3){
 								spriteString += "\n";
 								maskString += "\n";
 								comboString += "\n";
@@ -246,9 +245,11 @@
 							spriteString += "// FRAME "+frameNumber+"\n";
 							maskString += "// FRAME "+frameNumber+"\n";
 							comboString += "// FRAME "+frameNumber+"\n";
-							rowCounter = 0;
+							currentByte = 0;
 						}
-		                currentByte++;
+						else{
+			                currentByte++;
+			            }
 		            }
 		        }
 		        spriteString = spriteString.replace(/\s*$/, "\n};");
