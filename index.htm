@@ -74,19 +74,19 @@
 		        droppedImage.src = event.target.result;
 
 		        var fileName = imageData.name.split('.')[0];
-		        var origWidth = fileName.split('_')[1].split('x')[0];
-		        var origHeight = fileName.split('_')[1].split('x')[1];
+		        var origWidth = parseInt(fileName.split('_')[1].split('x')[0]);
+		        var origHeight = parseInt(fileName.split('_')[1].split('x')[1]);
 		        var imgNW = droppedImage.naturalWidth;
 		        var imgNH = droppedImage.naturalHeight;
 		        var zoom = 1;
-		        switch(imgNW){
+		        switch(origHeight){
 		        	case 8: zoom = 4;
 		        		break;
 		        	case 16: zoom = 2;
 		        		break;
 		        	case 24: zoom = 4/3;
 		        		break;
-		        	case 24: zoom = 1;
+		        	case 32: zoom = 1;
 		        		break;
 		        }
 
@@ -195,7 +195,6 @@
 		        
 		        // Read the sprite page-by-page
 		        for(var page = 0; page < pageCount; page++) {
-		        	//currentByte = 0;
 		            // Read the page column-by-column
 		            for(var column = 0; column < columnCount; column++) {
 		            
@@ -235,9 +234,12 @@
 							comboString += "\n";
 						}
 						if(currentByte%bytesPerFrame === bytesPerFrame - 1 && frameCounter < imgNH/origHeight -1){
-							if(currentByte%8 !== 7 && currentByte%8 !== 3){
+							if(currentByte%8 !== 7){
 								spriteString += "\n";
 								maskString += "\n";
+								//comboString += "\n";
+							}
+							if(currentByte%8 !== 3){
 								comboString += "\n";
 							}
 							frameCounter++;
