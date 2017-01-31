@@ -156,7 +156,7 @@
 		        droppedImageContext.fillStyle = "#00FF00";
 
 		        // Clip the image, draw on invisble canvas with green background and create a frame from the canvas 
-		        for(var i = 0, x = 0, y = 0, tile; i < imgNH/imgNW; i++){
+		        for(var i = 0; i < imgNH/origHeight; i++){
 		        	droppedImageContext.fillRect(0,0,droppedImageCanvas.width, droppedImageCanvas.height);
 		        	droppedImageContext.drawImage(droppedImage, 0, i*origWidth, origWidth, origHeight, 0, 0, origWidth*zoom, origHeight*zoom);
 		        	encoder.addFrame(droppedImageContext);
@@ -173,7 +173,7 @@
 		        var totalFrames = document.createElement('p');
 		        totalFrames.style.display = 'inline-block';
 		        totalFrames.style.margin = '0px 20px';
-		        totalFrames.innerHTML = "Total number of frames: "+imgNH/imgNW;
+		        totalFrames.innerHTML = "Total number of frames: "+imgNH/origHeight;
 		        gifDiv.appendChild(totalFrames);
 		        imageContainer.insertBefore(gifDiv, imageContainer.firstChild);
 
@@ -195,7 +195,7 @@
 		        
 		        // Read the sprite page-by-page
 		        for(var page = 0; page < pageCount; page++) {
-		        
+		        	currentByte = 0;
 		            // Read the page column-by-column
 		            for(var column = 0; column < columnCount; column++) {
 		            
@@ -231,24 +231,29 @@
 							maskString += "\n";
 							comboString += "\n";
 							rowCounter++;
-							if(rowCounter == Math.pow(imgNW/8, 2) && frameCounter < imgNH/imgNW -1){
-								frameCounter++;
-								var frameNumber = frameCounter.toString().length === 1 ? "0"+frameCounter.toString() : frameCounter.toString();
-								spriteString += "// FRAME "+frameNumber+"\n";
-								maskString += "// FRAME "+frameNumber+"\n";
-								comboString += "// FRAME "+frameNumber+"\n";
-								rowCounter = 0;
-							}
 						}
 						if(currentByte%8 == 3){
 							comboString += "\n";
 						}
+						if(currentByte%imgNW === imgNW-1 && frameCounter < imgNH/origHeight -1){
+							if(currentByte%8 !== 7){
+								spriteString += "\n";
+								maskString += "\n";
+								comboString += "\n";
+							}
+							frameCounter++;
+							var frameNumber = frameCounter.toString().length === 1 ? "0"+frameCounter.toString() : frameCounter.toString();
+							spriteString += "// FRAME "+frameNumber+"\n";
+							maskString += "// FRAME "+frameNumber+"\n";
+							comboString += "// FRAME "+frameNumber+"\n";
+							rowCounter = 0;
+						}
 		                currentByte++;
 		            }
 		        }
-		        spriteString += "};\n\n";
-		        maskString += "};\n\n";
-		        comboString += "};";
+		        spriteString = spriteString.replace(/\s*$/, "\n};");
+		        maskString = maskString.replace(/\s*$/, "\n};");
+		        comboString = comboString.replace(/\s*$/, "\n};");
 
 		        // Put the code in the text field
 		        droppedImageCode.innerHTML = spriteString;
