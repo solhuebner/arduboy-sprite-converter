@@ -31,6 +31,7 @@
         	padding:0px;
         	background-color: #FEFEFC;
         	border: 1px solid #463C3C;
+        	white-space: pre;
         }
         .txtHead{
         	text-align: left;
@@ -224,22 +225,32 @@
 		                }
 		                spriteString += "0x" + digitSpriteStr + ", ";
 		                maskString += "0x" + digitMaskStr + ", ";
-		                comboString += "0x" + digitSpriteStr + ", " + "0x" + digitMaskStr + ", ";
-		                if(currentByte%8 == 7) {
-							spriteString += "\n";
-							maskString += "\n";
-							comboString += "\n";
-						}
-						if(currentByte%8 == 3){
-							comboString += "\n";
-						}
-						if(currentByte%bytesPerFrame === bytesPerFrame - 1 && frameCounter < imgNH/origHeight -1){
-							if(currentByte%8 !== 7){
+		                comboString += "0x" + digitSpriteStr + ", ";
+		                if(imgNW%2===0){
+		                	comboString += "0x" + digitMaskStr + ", ";
+		                	if(currentByte%imgNW == imgNW - 1){
 								spriteString += "\n";
 								maskString += "\n";
-								//comboString += "\n";
+								comboString += "\n";
 							}
-							if(currentByte%8 !== 3){
+						}
+						if(currentByte%imgNW == Math.ceil(imgNW/2)-1){
+							comboString += "\n";
+						}
+						if(imgNW%2===1){
+							comboString += "0x" + digitMaskStr + ", ";
+							if(currentByte%imgNW == imgNW - 1){
+								spriteString += "\n";
+								maskString += "\n";
+								comboString += "\n";
+							}
+						}
+						if(currentByte%bytesPerFrame === bytesPerFrame - 1 && frameCounter < imgNH/origHeight -1){
+							if(currentByte%imgNW !== imgNW - 1){
+								spriteString += "\n";
+								maskString += "\n";
+							}
+							if(currentByte%imgNW !== Math.ceil(imgNW/2)-1){
 								comboString += "\n";
 							}
 							frameCounter++;
